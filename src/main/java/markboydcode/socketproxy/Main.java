@@ -1,5 +1,6 @@
 package markboydcode.socketproxy;
 
+import markboydcode.socketproxy.udp.UdpListener;
 import org.apache.commons.cli.*;
 
 /**
@@ -28,6 +29,12 @@ public class Main {
             .isRequired(false).hasArg().withDescription("Prefix of connection identifiers and hence their log files. Defaults to 'C'").create("x");
 
     /**
+     * command line option: -t <'udp' | 'tcp'> proxy UDP rather than the default of TCP
+     */
+    static final Option proxyTypeParam = OptionBuilder.withArgName("proxy-type")
+            .isRequired(false).hasArg().withDescription("Type of traffic to proxy. Defaults to 'tcp'").create("t");
+
+    /**
      * Entry point into app.
      *
      * @param args
@@ -47,6 +54,7 @@ public class Main {
         opts.addOption(portParam);
         opts.addOption(destParam);
         opts.addOption(idPrefixParam);
+        opts.addOption(proxyTypeParam);
 
         CommandLineParser clp = new GnuParser();
         CommandLine cl = null;
@@ -62,6 +70,7 @@ public class Main {
         int port = -1;
         String destHost = null;
         String logPrefix = "C";
+        String proxyType = "tcp";
         int destPort = -1;
 
         if (cl.hasOption(portParam.getOpt())) {
@@ -96,6 +105,9 @@ public class Main {
         if (cl.hasOption(idPrefixParam.getOpt())) {
             logPrefix = cl.getOptionValue(idPrefixParam.getOpt());
         }
+        if (cl.hasOption(proxyTypeParam.getOpt())) {
+            proxyType = cl.getOptionValue(proxyTypeParam.getOpt()).toLowerCase();
+        }
 
         if(port == -1 || destPort == -1 || destHost == null || destHost.equals("")) {
             showHelpAndExit(opts);
@@ -104,8 +116,15 @@ public class Main {
 
         // we've got valid parameters, fire it up
 
-        Listener l = new Listener(port, destHost, destPort, logPrefix);
-        l.run();
+        if ("udp".equals(proxyType)) {
+            UdpListener udpListener = new UdpListener(port, destHost, destPort, logPrefix);
+            udpListener.run();
+        }
+        else {
+            System.out.println("TCP Proxy starting");
+            Listener l = new Listener(port, destHost, destPort, logPrefix);
+            l.run();
+        }
     }
 
 
